@@ -64,6 +64,29 @@ app.post("/api/buyerSet", (req, res) => {
   })();
 });
 
+
+app.post("/api/paymentSet", (req, res) => {
+  (async () => {
+    try {
+
+      await db.collection("paymentdetails").doc(`/${Date.now()}/`).create({
+        id: Date.now(),
+        buyerId: req.body.buyerId,
+        buyer: req.body.buyer,
+        payment: req.body.payment,
+        paymentDate: req.body.paymentDate,
+        loggedinUserName: req.body.loggedinUserName,
+        loggedinuserEmail: req.body.loggedinuserEmail
+      });
+
+      return res.status(200).send({ status: "Success", msg: "Data Saved" });
+    } catch (error) {
+      console.log(error);
+      res.status(500).send({ status: "Failed", msg: error });
+    }
+  })();
+});
+
 app.put("/api/updateBuyerInfo/:id", (req, res) => {
   (async () => {
     try {
@@ -73,6 +96,23 @@ app.put("/api/updateBuyerInfo/:id", (req, res) => {
         flatMeasurement: req.body.flatMeasurement,
         pricePersqft: req.body.pricePersqft,
         totalPrice: req.body.totalPrice,
+      });
+      return res.status(200).send({ status: "Success", msg: "Data Updated" });
+    } catch (error) {
+      console.log(error);
+      res.status(500).send({ status: "Failed", msg: error });
+    }
+  })();
+});
+
+app.put("/api/updatePaymentInfo/:id", (req, res) => {
+  (async () => {
+    try {
+      const reqDoc = db.collection("paymentdetails").doc(req.params.id);
+      await reqDoc.update({
+        buyer: req.body.buyer,
+        payment: req.body.payment,
+        paymentDate: req.body.paymentDate
       });
       return res.status(200).send({ status: "Success", msg: "Data Updated" });
     } catch (error) {
@@ -104,6 +144,42 @@ app.get("/api/getBuyersDetails", (req, res) => {
             createrEmail: doc.data().loggedinuserEmail,
             id: doc.data().id,
 
+          };
+
+          response.push(selectedData);
+        });
+        return response;
+      });
+
+      return res.status(200).send({ status: "Success", data: response });
+    } catch (error) {
+      console.log(error);
+      res.status(500).send({ status: "Failed", msg: error });
+    }
+  })();
+});
+
+
+// get buyer Details
+app.get("/api/getPaymentDetails", (req, res) => {
+  (async () => {
+    try {
+      let query = db.collection("paymentdetails");
+      let response = [];
+
+      await query.get().then((data) => {
+        let docs = data.docs; // query results
+
+        docs.map((doc) => {
+          const selectedData = {
+            buyerId: doc.data().buyerId,
+            buyer: doc.data().buyer,
+            payment: doc.data().payment,
+            paymentDate: doc.data().paymentDate,
+            createdBy: doc.data().loggedinUserName,
+            createrEmail: doc.data().loggedinuserEmail,
+            paymentId: doc.data().id,
+            id: doc.data().id
           };
 
           response.push(selectedData);
@@ -222,34 +298,16 @@ app.put("/api/update/:id", (req, res) => {
 });
 
 
-// update
-// put
-app.patch("/api/updateBuyer/:id", (req, res) => {
-  (async () => {
-    try {
-      const reqDoc = db.collection("buyerdetails").doc(req.params.id);
-      await reqDoc.update({
-        buyerName: doc.data().buyerName,
-        flatMeasurement: doc.data().flatMeasurement,
-        pricePersqft: doc.data().pricePersqft,
-        totalPrice: doc.data().totalPrice,
-      });
-      return res.status(200).send({ status: "Success", msg: "Data Updated" });
-    } catch (error) {
-      console.log(error);
-      res.status(500).send({ status: "Failed", msg: error });
-    }
-  })();
-});
+
 
 // delete
 // delete
-app.delete("/api/delete/:id", (req, res) => {
+app.delete("/api/paymentDelete/:id", (req, res) => {
   (async () => {
     try {
-      const reqDoc = db.collection("userdetails").doc(req.params.id);
+      const reqDoc = db.collection("paymentdetails").doc(req.params.id);
       await reqDoc.delete();
-      return res.status(200).send({ status: "Success", msg: "Data Removed" });
+      return res.status(200).send({ status: "Success", msg: "Payment data Removed" });
     } catch (error) {
       console.log(error);
       res.status(500).send({ status: "Failed", msg: error });
@@ -273,23 +331,6 @@ app.delete("/api/deleteBuyer/:id", (req, res) => {
 });
 
 
-app.put("/api/modifyBuyer/:id", (req, res) => {
-  (async () => {
-    try {
-      const reqDoc = db.collection("buyerdetails").doc(req.params.id);
-      await reqDoc.update({
-        buyerName: doc.data().buyerName,
-         flatMeasurement: doc.data().flatMeasurement,
-         pricePersqft: doc.data().pricePersqft,
-         totalPrice: doc.data().totalPrice,
-      });
-      return res.status(200).send({ status: "Success", msg: "Data Removed" });
-    } catch (error) {
-      console.log(error);
-      res.status(500).send({ status: "Failed", msg: error });
-    }
-  })();
-});
 
 // Exports api to the firebase cloud functions
 exports.app = functions.https.onRequest(app);
