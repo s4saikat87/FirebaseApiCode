@@ -12,6 +12,7 @@ admin.initializeApp({
 const express = require("express");
 const cors = require("cors");
 const { response } = require("express");
+const { firestore } = require("firebase-admin");
 const app = express();
 
 app.use(cors({ origin: true }));
@@ -75,6 +76,7 @@ app.post("/api/paymentSet", (req, res) => {
         buyer: req.body.buyer,
         payment: req.body.payment,
         paymentDate: req.body.paymentDate,
+        totalPrice: req.body.totalPrice,
         loggedinUserName: req.body.loggedinUserName,
         loggedinuserEmail: req.body.loggedinuserEmail
       });
@@ -97,6 +99,8 @@ app.put("/api/updateBuyerInfo/:id", (req, res) => {
         pricePersqft: req.body.pricePersqft,
         totalPrice: req.body.totalPrice,
       });
+
+
       return res.status(200).send({ status: "Success", msg: "Data Updated" });
     } catch (error) {
       console.log(error);
@@ -105,15 +109,50 @@ app.put("/api/updateBuyerInfo/:id", (req, res) => {
   })();
 });
 
-app.put("/api/updatePaymentInfo/:id", (req, res) => {
+app.post("/api/updatePaymentInfo", (req, res) => {
   (async () => {
     try {
-      const reqDoc = db.collection("paymentdetails").doc(req.params.id);
-      await reqDoc.update({
-        buyer: req.body.buyer,
-        payment: req.body.payment,
-        paymentDate: req.body.paymentDate
-      });
+
+      const ORDER_ITEMS = db.collection("paymentdetails")
+
+      ORDER_ITEMS.where("buyerId","==",req.body.buyerId)
+        .get()
+        .then(snapshots => {
+          if (snapshots.size > 0) {
+            snapshots.forEach(orderItem => {
+              ORDER_ITEMS.doc(orderItem.id).update({ totalPrice: req.body.totalPrice })
+            })
+          }
+          else
+          {
+            console.log("no doc");
+          }
+        })
+
+
+      // db.collection("paymentdetails")
+      // .where("buyerId","==",req.params.buyerId).get()
+      // .then(response=>{
+      //   let batch=firebase.firestore().batch()
+      //   response.docs.forEach((doc)=>{
+      //     const docRef=firebase.firestore().collection("paymentdetails").doc(doc.id)
+      //    // batch.update(docRef)
+      //   })
+
+
+      // })
+
+
+
+      //  const reqDoc = db.collection("paymentdetails").where("buyerId","==",req.params.buyerId).doc()
+      //  .update({
+      //     totalPrice: req.body.totalPrice
+      //   });
+      //reqDoc.where("buyerId","==",req.params.buyerId)
+
+      // await reqDoc.update({
+      //   totalPrice: req.body.totalPrice
+      // });
       return res.status(200).send({ status: "Success", msg: "Data Updated" });
     } catch (error) {
       console.log(error);
@@ -176,6 +215,7 @@ app.get("/api/getPaymentDetails", (req, res) => {
             buyer: doc.data().buyer,
             payment: doc.data().payment,
             paymentDate: doc.data().paymentDate,
+            totalPrice: doc.data().totalPrice,
             createdBy: doc.data().loggedinUserName,
             createrEmail: doc.data().loggedinuserEmail,
             paymentId: doc.data().id,
